@@ -57,15 +57,13 @@ int main(int argc, char *argv[])
        2) the new socket descriptor will be used for subsequent communication with the newly connected client.
      */
 
-     pthread_t pthread[2];
-     int i = 0;
+     pthread_t pthread;
      while(1){
          newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
          if (newsockfd < 0) 
              error("ERROR on accept");
-         pthread_create(&pthread[i], NULL, *pthread_read_and_write, (void *)newsockfd);
-         pthread_detach(pthread[i]);
-         i++;
+         pthread_create(&pthread, NULL, *pthread_read_and_write, (void *)newsockfd);
+         pthread_detach(pthread);
      }
      close(sockfd);
      close(newsockfd);
