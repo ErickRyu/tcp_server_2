@@ -10,6 +10,7 @@
 #include <netdb.h>      // define structures like hostent
 #include <stdlib.h>
 #include <strings.h>
+#include <unistd.h>
 
 void error(char *msg)
 {
