@@ -18,6 +18,7 @@ void error(char *msg)
 }
 
 void *pthread_read_and_write(void *arg);
+int writeToClient(int newsockfd, char* msg);
 int main(int argc, char *argv[])
 {
     int sockfd, newsockfd; //descriptors rturn from socket and accept system calls
@@ -76,15 +77,35 @@ void *pthread_read_and_write(void *arg){
     int newsockfd = (int)arg;
     char buffer[256];
     int n;
-    while(1){
-        bzero(buffer,256);
-        printf("newsockfd : %d\n", newsockfd);
-        n = read(newsockfd,buffer,255); //Read is a block function. It will read at most 255 bytes
-        if (n < 0) error("ERROR reading from socket");
-        printf("Here is the message: %s\n",buffer);
 
-        n = write(newsockfd,buffer,strlen(buffer)); //NOTE: write function returns the number of bytes actually sent out Ñ> this might be less than the number you told it to send
-        if (n < 0) error("ERROR writing to socket");
-    }
+    bzero(buffer,256);
+    printf("newsockfd : %d\n", newsockfd);
+    n = read(newsockfd,buffer,255); //Read is a block function. It will read at most 255 bytes
+    if (n < 0) error("ERROR reading from socket");
+    printf("Here is the message: %s\n",buffer);
 
+    char *type = "text/html";
+    char conLen[40];
+    char conType[30];
+    long fsize = 1000;
+    char* msg = "hello";
+    sprintf(conLen, "Content-length: %ld\r\n", strlen(msg));
+    printf("conlen\n");
+    sprintf(conType, "Content-Type: %s\r\n\r\n", type);
+    printf("contype\n");
+
+    writeToClient(newsockfd, "HTTP/1.1 200 OK\r\n");
+    writeToClient(newsockfd, conLen);
+    writeToClient(newsockfd, conType);
+    writeToClient(newsockfd,msg); 
+
+    if (n < 0) error("ERROR writing to socket");
+    return NULL;
 }
+
+int writeToClient(int newsockfd, char* msg){
+    int n =  write(newsockfd, msg, strlen(msg));
+    if (n < 0) error("ERROR writing to socket");
+    return n;
+}
+
