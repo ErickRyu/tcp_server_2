@@ -85,8 +85,8 @@ void *pthread_read_and_write(void *arg){
     n = read(newsockfd,reqMsg,499); //Read is a block function. It will read at most 255 bytes
     if (n < 0) error("ERROR reading from socket");
     printf("========Request Message======\n%s\n",reqMsg);
-
     requestHandler(newsockfd, reqMsg);
+    printf("=============================\n");
 
     return NULL;
 }
@@ -107,7 +107,11 @@ void requestHandler(int newsockfd, char *reqMsg){
     }
     long fsize;
     char *type = "text/html";
-    FILE *fp = fopen("index.html", "rb");
+    FILE *fp = fopen(file, "rb");
+    if(fp == NULL){
+        sendError(newsockfd);
+        return;
+    }
     fseek(fp, 0, SEEK_END);
     fsize = ftell(fp);
     rewind(fp);
