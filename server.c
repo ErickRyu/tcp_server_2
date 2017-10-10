@@ -77,14 +77,13 @@ int main(int argc, char *argv[])
 
 void *pthread_read_and_write(void *arg){
     int newsockfd = (int)arg;
-    char buffer[256];
+    char buffer[500];
     int n;
 
-    bzero(buffer,256);
-    printf("newsockfd : %d\n", newsockfd);
-    n = read(newsockfd,buffer,255); //Read is a block function. It will read at most 255 bytes
+    bzero(buffer,500);
+    n = read(newsockfd,buffer,499); //Read is a block function. It will read at most 255 bytes
     if (n < 0) error("ERROR reading from socket");
-    printf("Here is the message: %s\n",buffer);
+    printf("========Request Message======\n%s\n",buffer);
 
     char *type = "text/html";
     long fsize = 1000;
