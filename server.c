@@ -10,6 +10,7 @@
 #include <strings.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <stdint.h>
 void error(char *msg)
 {
     perror(msg);
@@ -62,7 +63,7 @@ int main(int argc, char *argv[])
          newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
          if (newsockfd < 0) 
              error("ERROR on accept");
-         pthread_create(&pthread, NULL, *pthread_read_and_write, (void *)newsockfd);
+         pthread_create(&pthread, NULL, *pthread_read_and_write, (void *)(intptr_t)newsockfd);
          pthread_detach(pthread);
      }
      close(sockfd);
