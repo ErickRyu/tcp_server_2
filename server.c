@@ -19,7 +19,7 @@ void error(char *msg)
 
 void *pthread_read_and_write(void *arg);
 int writeToClient(int newsockfd, char* msg);
-void sendResponseHeader(int newsockfd, char *httpMsg);
+void sendResponseHeader(int newsockfd, char *httpMsg, long contentLen, char *contentType);
 int main(int argc, char *argv[])
 {
     int sockfd, newsockfd; //descriptors rturn from socket and accept system calls
@@ -86,29 +86,28 @@ void *pthread_read_and_write(void *arg){
     printf("Here is the message: %s\n",buffer);
 
     char *type = "text/html";
-    char conLen[40];
-    char conType[30];
     long fsize = 1000;
     char* msg = "hello";
-    sprintf(conLen, "Content-length: %ld\r\n", strlen(msg));
-    printf("conlen\n");
-    sprintf(conType, "Content-Type: %s\r\n\r\n", type);
-    printf("contype\n");
 
     //writeToClient(newsockfd, "HTTP/1.1 200 OK\r\n");
-    sendResponseHeader(newsockfd, "200 OK");
-    writeToClient(newsockfd, conLen);
-    writeToClient(newsockfd, conType);
+    char *httpMsgOK = "200 OK";
+    sendResponseHeader(newsockfd, httpMsgOK, strlen(msg), type);
     writeToClient(newsockfd,msg); 
 
     if (n < 0) error("ERROR writing to socket");
     return NULL;
 }
 
-void sendResponseHeader(int newsockfd, char *httpMsg){
-    char firstLine[40];
-    sprintf(firstLine, "HTTP/1.1 %s\r\n",httpMsg);
-    writeToClient(newsockfd, firstLine);
+void sendResponseHeader(int newsockfd, char *httpMsg, long contentLen, char *contentType){
+    char resMsg[40];
+    char conLen[40];
+    char conType[30];
+    sprintf(resMsg, "HTTP/1.1 %s\r\n",httpMsg);
+    sprintf(conLen, "Content-length: %ld\r\n", contentLen);
+    sprintf(conType, "Content-Type: %s\r\n\r\n", contentType);
+    writeToClient(newsockfd, resMsg);
+    writeToClient(newsockfd, conLen);
+    writeToClient(newsockfd, conType);
 }
 
 int writeToClient(int newsockfd, char* msg){
