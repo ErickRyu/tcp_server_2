@@ -9,19 +9,20 @@
 #include <stdlib.h>
 #include <strings.h>
 #include <unistd.h>
+#include <pthread.h>
 void error(char *msg)
 {
     perror(msg);
     exit(1);
 }
 
+void *pthread_read_and_write(void *arg);
 int main(int argc, char *argv[])
 {
     int sockfd, newsockfd; //descriptors rturn from socket and accept system calls
      int portno; // port number
      socklen_t clilen;
      
-     char buffer[256];
      
      /*sockaddr_in: Structure Containing an Internet Address*/
      struct sockaddr_in serv_addr, cli_addr;
@@ -55,22 +56,36 @@ int main(int argc, char *argv[])
        1) Block until a new connection is established
        2) the new socket descriptor will be used for subsequent communication with the newly connected client.
      */
-     newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
-     if (newsockfd < 0) 
-          error("ERROR on accept");
-     
-     while(1){
-         bzero(buffer,256);
-         n = read(newsockfd,buffer,255); //Read is a block function. It will read at most 255 bytes
-         if (n < 0) error("ERROR reading from socket");
-         printf("Here is the message: %s\n",buffer);
 
-         n = write(newsockfd,buffer,strlen(buffer)); //NOTE: write function returns the number of bytes actually sent out Ñ> this might be less than the number you told it to send
-         if (n < 0) error("ERROR writing to socket");
+     pthread_t pthread[2];
+     int i = 0;
+     while(1){
+         newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
+         if (newsockfd < 0) 
+             error("ERROR on accept");
+         pthread_create(&pthread[i], NULL, *pthread_read_and_write, (void *)newsockfd);
+         pthread_detach(pthread[i]);
+         i++;
      }
-     
      close(sockfd);
      close(newsockfd);
      
      return 0; 
+}
+
+void *pthread_read_and_write(void *arg){
+    int newsockfd = (int)arg;
+    char buffer[256];
+    int n;
+    while(1){
+        bzero(buffer,256);
+        printf("newsockfd : %d\n", newsockfd);
+        n = read(newsockfd,buffer,255); //Read is a block function. It will read at most 255 bytes
+        if (n < 0) error("ERROR reading from socket");
+        printf("Here is the message: %s\n",buffer);
+
+        n = write(newsockfd,buffer,strlen(buffer)); //NOTE: write function returns the number of bytes actually sent out Ñ> this might be less than the number you told it to send
+        if (n < 0) error("ERROR writing to socket");
+    }
+
 }
