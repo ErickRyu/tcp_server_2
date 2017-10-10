@@ -86,13 +86,21 @@ void *pthread_read_and_write(void *arg){
     printf("========Request Message======\n%s\n",buffer);
 
     char *type = "text/html";
-    long fsize = 1000;
-    char* msg = "hello";
+
+    long fsize;
+
+    FILE *fp = fopen("index.html", "rb");
+    fseek(fp, 0, SEEK_END);
+    fsize = ftell(fp);
+    rewind(fp);
+    char *msg = (char*)malloc(fsize);
+    fread(msg, fsize, 1, fp);
+    fclose(fp);
 
     char *httpMsgOK = "200 OK";
-    //sendResponseHeader(newsockfd, httpMsgOK, strlen(msg), type);
-    //writeToClient(newsockfd,msg); 
-    sendError(newsockfd);
+    sendResponseHeader(newsockfd, httpMsgOK, strlen(msg), type);
+    writeToClient(newsockfd,msg); 
+    //sendError(newsockfd);
 
     if (n < 0) error("ERROR writing to socket");
     return NULL;
