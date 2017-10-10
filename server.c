@@ -99,7 +99,6 @@ void requestHandler(int newsockfd, char *reqMsg){
 
     }else{
         sendError(newsockfd);
-        error("Method error");
         return;
     }
     if(strcmp(file, "HTTP") == 0 || strcmp(file, "http") == 0){
