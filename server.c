@@ -59,13 +59,15 @@ int main(int argc, char *argv[])
      if (newsockfd < 0) 
           error("ERROR on accept");
      
-     bzero(buffer,256);
-     n = read(newsockfd,buffer,255); //Read is a block function. It will read at most 255 bytes
-     if (n < 0) error("ERROR reading from socket");
-        printf("Here is the message: %s\n",buffer);
-     
-     n = write(newsockfd,"I got your message",18); //NOTE: write function returns the number of bytes actually sent out Ñ> this might be less than the number you told it to send
-     if (n < 0) error("ERROR writing to socket");
+     while(1){
+         bzero(buffer,256);
+         n = read(newsockfd,buffer,255); //Read is a block function. It will read at most 255 bytes
+         if (n < 0) error("ERROR reading from socket");
+         printf("Here is the message: %s\n",buffer);
+
+         n = write(newsockfd,buffer,strlen(buffer)); //NOTE: write function returns the number of bytes actually sent out Ñ> this might be less than the number you told it to send
+         if (n < 0) error("ERROR writing to socket");
+     }
      
      close(sockfd);
      close(newsockfd);
