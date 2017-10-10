@@ -21,6 +21,7 @@ void *pthread_read_and_write(void *arg);
 int writeToClient(int newsockfd, char* msg);
 void sendError(int newsockfd);
 void sendResponseHeader(int newsockfd, char *httpMsg, long contentLen, char *contentType);
+void requestHandler(int newsockfd, char *reqMsg);
 int main(int argc, char *argv[])
 {
     int sockfd, newsockfd; //descriptors rturn from socket and accept system calls
@@ -77,21 +78,36 @@ int main(int argc, char *argv[])
 
 void *pthread_read_and_write(void *arg){
     int newsockfd = (int)arg;
-    char buffer[500];
+    char reqMsg[500];
     int n;
 
-    bzero(buffer,500);
-    n = read(newsockfd,buffer,499); //Read is a block function. It will read at most 255 bytes
+    bzero(reqMsg,500);
+    n = read(newsockfd,reqMsg,499); //Read is a block function. It will read at most 255 bytes
     if (n < 0) error("ERROR reading from socket");
-    printf("========Request Message======\n%s\n",buffer);
+    printf("========Request Message======\n%s\n",reqMsg);
 
-    char *type = "text/html";
+    requestHandler(newsockfd, reqMsg);
 
-    long fsize;
+    return NULL;
+}
+void requestHandler(int newsockfd, char *reqMsg){
+    char *method = strtok(reqMsg, " /");
+    char *file = strtok(NULL, " /");
+    printf("method : %s\n", method);
+    printf("file : %s\n", file);
+    if(strcmp(method, "GET") == 0 || strcmp(method, "get") == 0){
 
-    FILE *fp = fopen("index.html", "rb");
-    if(fp == NULL)
+    }else{
         sendError(newsockfd);
+        error("Method error");
+        return;
+    }
+    if(strcmp(file, "HTTP") == 0 || strcmp(file, "http") == 0){
+        file = "index.html";
+    }
+    long fsize;
+    char *type = "text/html";
+    FILE *fp = fopen("index.html", "rb");
     fseek(fp, 0, SEEK_END);
     fsize = ftell(fp);
     rewind(fp);
@@ -101,10 +117,8 @@ void *pthread_read_and_write(void *arg){
 
     char *httpMsgOK = "200 OK";
     sendResponseHeader(newsockfd, httpMsgOK, strlen(msg), type);
-    writeToClient(newsockfd,msg); 
-
+    int n = writeToClient(newsockfd,msg); 
     if (n < 0) error("ERROR writing to socket");
-    return NULL;
 }
 void sendError(int newsockfd){
     char *msg = "<html><body><h1>400 Bad Request</h1></body></html>";
