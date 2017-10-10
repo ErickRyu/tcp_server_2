@@ -90,6 +90,8 @@ void *pthread_read_and_write(void *arg){
     long fsize;
 
     FILE *fp = fopen("index.html", "rb");
+    if(fp == NULL)
+        sendError(newsockfd);
     fseek(fp, 0, SEEK_END);
     fsize = ftell(fp);
     rewind(fp);
@@ -100,7 +102,6 @@ void *pthread_read_and_write(void *arg){
     char *httpMsgOK = "200 OK";
     sendResponseHeader(newsockfd, httpMsgOK, strlen(msg), type);
     writeToClient(newsockfd,msg); 
-    //sendError(newsockfd);
 
     if (n < 0) error("ERROR writing to socket");
     return NULL;
