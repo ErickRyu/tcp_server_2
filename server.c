@@ -19,6 +19,7 @@ void error(char *msg)
 
 void *pthread_read_and_write(void *arg);
 int writeToClient(int newsockfd, char* msg);
+void sendError(int newsockfd);
 void sendResponseHeader(int newsockfd, char *httpMsg, long contentLen, char *contentType);
 int main(int argc, char *argv[])
 {
@@ -89,13 +90,18 @@ void *pthread_read_and_write(void *arg){
     long fsize = 1000;
     char* msg = "hello";
 
-    //writeToClient(newsockfd, "HTTP/1.1 200 OK\r\n");
     char *httpMsgOK = "200 OK";
-    sendResponseHeader(newsockfd, httpMsgOK, strlen(msg), type);
-    writeToClient(newsockfd,msg); 
+    //sendResponseHeader(newsockfd, httpMsgOK, strlen(msg), type);
+    //writeToClient(newsockfd,msg); 
+    sendError(newsockfd);
 
     if (n < 0) error("ERROR writing to socket");
     return NULL;
+}
+void sendError(int newsockfd){
+    char *msg = "<html><body><h1>400 Bad Request</h1></body></html>";
+    sendResponseHeader(newsockfd, "400 Bad Request", strlen(msg), "text/html");
+    writeToClient(newsockfd, msg);
 }
 
 void sendResponseHeader(int newsockfd, char *httpMsg, long contentLen, char *contentType){
