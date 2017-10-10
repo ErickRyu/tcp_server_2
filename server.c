@@ -19,6 +19,7 @@ void error(char *msg)
 
 void *pthread_read_and_write(void *arg);
 int writeToClient(int newsockfd, char* msg);
+void sendResponseHeader(int newsockfd, char *httpMsg);
 int main(int argc, char *argv[])
 {
     int sockfd, newsockfd; //descriptors rturn from socket and accept system calls
@@ -94,13 +95,20 @@ void *pthread_read_and_write(void *arg){
     sprintf(conType, "Content-Type: %s\r\n\r\n", type);
     printf("contype\n");
 
-    writeToClient(newsockfd, "HTTP/1.1 200 OK\r\n");
+    //writeToClient(newsockfd, "HTTP/1.1 200 OK\r\n");
+    sendResponseHeader(newsockfd, "200 OK");
     writeToClient(newsockfd, conLen);
     writeToClient(newsockfd, conType);
     writeToClient(newsockfd,msg); 
 
     if (n < 0) error("ERROR writing to socket");
     return NULL;
+}
+
+void sendResponseHeader(int newsockfd, char *httpMsg){
+    char firstLine[40];
+    sprintf(firstLine, "HTTP/1.1 %s\r\n",httpMsg);
+    writeToClient(newsockfd, firstLine);
 }
 
 int writeToClient(int newsockfd, char* msg){
