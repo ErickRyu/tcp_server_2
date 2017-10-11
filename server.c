@@ -91,10 +91,16 @@ void *pthread_read_and_write(void *arg){
     return NULL;
 }
 void requestHandler(int newsockfd, char *reqMsg){
+    char file[30];
     char *method = strtok(reqMsg, " /");
-    char *file = strtok(NULL, " /");
+    strcpy(file, strtok(NULL, " /"));
+    char tmpFileName[30];
+    strcpy(tmpFileName, file);
+    strtok(tmpFileName, ".");
+    char *extension = strtok(NULL, ".");
     printf("method : %s\n", method);
     printf("file : %s\n", file);
+    printf("extension : %s\n", extension);
     if(strcmp(method, "GET") == 0 || strcmp(method, "get") == 0){
 
     }else{
@@ -102,10 +108,17 @@ void requestHandler(int newsockfd, char *reqMsg){
         return;
     }
     if(strcmp(file, "HTTP") == 0 || strcmp(file, "http") == 0){
-        file = "index.html";
+        strcpy(file , "index.html");
     }
     long fsize;
     char *type = "text/html";
+    if(strcmp(extension, "jpeg") == 0){
+        type = "image/jpeg";
+    }else if(strcmp(extension, "gif") == 0){
+        type = "image/gif";
+
+    }
+    printf("type : %s\n", type);
     FILE *fp = fopen(file, "rb");
     if(fp == NULL){
         sendError(newsockfd);
@@ -118,8 +131,11 @@ void requestHandler(int newsockfd, char *reqMsg){
     fread(msg, fsize, 1, fp);
     fclose(fp);
 
+    printf("fsize : %ld\n", fsize);
+    printf("strlen(msg) : %ld\n", strlen(msg));
+
     char *httpMsgOK = "200 OK";
-    sendResponseHeader(newsockfd, httpMsgOK, strlen(msg), type);
+    sendResponseHeader(newsockfd, httpMsgOK, fsize, type);
     int n = writeToClient(newsockfd,msg); 
     if (n < 0) error("ERROR writing to socket");
 }
