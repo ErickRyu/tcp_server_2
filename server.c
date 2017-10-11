@@ -110,14 +110,19 @@ void requestHandler(int newsockfd, char *reqMsg){
     if(strcmp(file, "HTTP") == 0 || strcmp(file, "http") == 0){
         strcpy(file , "index.html");
     }
+    printf("compare success\n");
     long fsize;
-    char *type = "text/html";
-    if(strcmp(extension, "jpeg") == 0){
-        type = "image/jpeg";
+    char type[15];
+    if(extension == NULL){
+        strcpy(type, "text/html");
+    }else if(strcmp(extension, "jpeg") == 0){
+        strcpy(type,"image/jpeg");
     }else if(strcmp(extension, "gif") == 0){
-        type = "image/gif";
-
+        strcpy(type,"image/gif");
+    }else if(strcmp(extension, "mp3") == 0){
+        strcpy(type, "audio/mpeg");
     }
+    printf("compare success\n");
     printf("type : %s\n", type);
     FILE *fp = fopen(file, "rb");
     if(fp == NULL){
@@ -136,7 +141,7 @@ void requestHandler(int newsockfd, char *reqMsg){
 
     char *httpMsgOK = "200 OK";
     sendResponseHeader(newsockfd, httpMsgOK, fsize, type);
-    int n = writeToClient(newsockfd,msg); 
+    int n = send(newsockfd,msg, fsize, 0); 
     if (n < 0) error("ERROR writing to socket");
 }
 void sendError(int newsockfd){
@@ -158,7 +163,7 @@ void sendResponseHeader(int newsockfd, char *httpMsg, long contentLen, char *con
 }
 
 int writeToClient(int newsockfd, char* msg){
-    int n =  write(newsockfd, msg, strlen(msg));
+    int n =  send(newsockfd, msg, strlen(msg), 0);
     if (n < 0) error("ERROR writing to socket");
     return n;
 }
