@@ -12,6 +12,7 @@
 #include <pthread.h>
 #include <stdint.h>
 #include <fcntl.h>
+#include <signal.h>
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_t pthread;
@@ -28,6 +29,7 @@ void sendResponseHeader(int newsockfd, char *httpMsg, long contentLen, char *con
 void requestHandler(int newsockfd, char *reqMsg);
 int main(int argc, char *argv[])
 {
+    signal(SIGPIPE, SIG_IGN);
     int sockfd, newsockfd; //descriptors rturn from socket and accept system calls
      int portno; // port number
      socklen_t clilen;
@@ -180,8 +182,12 @@ void requestHandler(int newsockfd, char *reqMsg){
         while((n=read(fd, rcvBuf, BUFSIZ)) > 0){
 
             printf("sending rcvBuf : %d, remain : %ld\n", n, fsize-=n);
-            int res = write(newsockfd, rcvBuf, n);
-            if(res <0) error("ERROR writing to socket");
+            int res = send(newsockfd, rcvBuf, n, 0);
+            if(res <0) {
+                char errMsg[100];
+                sprintf(errMsg, "ERROR writing to socket __sock : %d __", newsockfd);
+                error(errMsg);
+            }
             bzero(rcvBuf, BUFSIZ + 1);
         }
     }
