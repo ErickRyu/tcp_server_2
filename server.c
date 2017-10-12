@@ -22,7 +22,7 @@ void error(char *msg)
     exit(1);
 }
 
-void *pthread_read_and_write(void *arg);
+void *serverThread(void *arg);
 int writeToClient(int newsockfd, char* msg);
 void sendError(int newsockfd);
 void sendResponseHeader(int newsockfd, char *httpMsg, long contentLen, char *contentType);
@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
          newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
          if (newsockfd < 0) 
              error("ERROR on accept");
-         pthread_create(&pthread, NULL, *pthread_read_and_write, (void *)(intptr_t)newsockfd);
+         pthread_create(&pthread, NULL, *serverThread, (void *)(intptr_t)newsockfd);
          pthread_detach(pthread);
      }
      close(sockfd);
@@ -81,7 +81,7 @@ int main(int argc, char *argv[])
      return 0; 
 }
 
-void *pthread_read_and_write(void *arg){
+void *serverThread(void *arg){
     int newsockfd = (int)arg;
     char reqMsg[500];
     int n;
@@ -144,11 +144,6 @@ void requestHandler(int newsockfd, char *reqMsg){
     }
     fseek(fp, 0, SEEK_END);
     fsize = ftell(fp);
-    /*
-    rewind(fp);
-    char *msg = (char*)malloc(fsize);
-    fread(msg, fsize, 1, fp);
-    */
     fclose(fp);
 
     char rcvBuf[BUFSIZ+1];
@@ -162,8 +157,6 @@ void requestHandler(int newsockfd, char *reqMsg){
     }
     printf("open fd OK\n");
 
-    //printf("fsize : %ld\n", fsize);
-    //printf("strlen(msg) : %ld\n", strlen(msg));
 
     char *httpMsgOK = "200 OK";
     printf("sending header...\n");
@@ -171,10 +164,6 @@ void requestHandler(int newsockfd, char *reqMsg){
     sendResponseHeader(newsockfd, httpMsgOK, fsize, type);
     printf("send header OK\n");
 
-    /*
-    int n = send(newsockfd,msg, fsize, 0); 
-    if (n < 0) error("ERROR writing to socket");
-    */
     pthread_mutex_unlock(&mutex);
     int n;
     bzero(rcvBuf, BUFSIZ + 1);
@@ -182,7 +171,7 @@ void requestHandler(int newsockfd, char *reqMsg){
         while((n=read(fd, rcvBuf, BUFSIZ)) > 0){
 
             printf("sending rcvBuf : %d, remain : %ld\n", n, fsize-=n);
-            int res = send(newsockfd, rcvBuf, n, 0);
+            int res = send(newsockfd, rcvBuf, n + 1, 0);
             if(res <0) {
                 char errMsg[100];
                 sprintf(errMsg, "ERROR writing to socket __sock : %d __", newsockfd);
