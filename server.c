@@ -12,6 +12,9 @@
 #include <pthread.h>
 #include <stdint.h>
 #include <fcntl.h>
+
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_t pthread;
 void error(char *msg)
 {
     perror(msg);
@@ -63,7 +66,6 @@ int main(int argc, char *argv[])
        2) the new socket descriptor will be used for subsequent communication with the newly connected client.
      */
 
-     pthread_t pthread;
      while(1){
          newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
          if (newsockfd < 0) 
@@ -92,6 +94,9 @@ void *pthread_read_and_write(void *arg){
     return NULL;
 }
 void requestHandler(int newsockfd, char *reqMsg){
+
+    printf("client socket : %d\n", newsockfd);
+
     char file[100];
     char *method = strtok(reqMsg, " /");
     strcpy(file, strtok(NULL, " /"));
@@ -115,7 +120,7 @@ void requestHandler(int newsockfd, char *reqMsg){
     long fsize;
     char type[20];
     
-    if(extension == NULL){
+    if(extension == NULL || strcmp(extension, "html") == 0){
         strcpy(type, "text/html");
     }else if(strcmp(extension, "jpeg") == 0){
         strcpy(type,"image/jpeg");
@@ -160,6 +165,7 @@ void requestHandler(int newsockfd, char *reqMsg){
 
     char *httpMsgOK = "200 OK";
     printf("sending header...\n");
+    pthread_mutex_lock(&mutex);
     sendResponseHeader(newsockfd, httpMsgOK, fsize, type);
     printf("send header OK\n");
 
@@ -167,22 +173,28 @@ void requestHandler(int newsockfd, char *reqMsg){
     int n = send(newsockfd,msg, fsize, 0); 
     if (n < 0) error("ERROR writing to socket");
     */
+    pthread_mutex_unlock(&mutex);
     int n;
+    bzero(rcvBuf, BUFSIZ + 1);
     if(fd >= 0) {
         while((n=read(fd, rcvBuf, BUFSIZ)) > 0){
+
             printf("sending rcvBuf : %d, remain : %ld\n", n, fsize-=n);
-            int res = send(newsockfd, rcvBuf, n, 0);
+            int res = write(newsockfd, rcvBuf, n);
             if(res <0) error("ERROR writing to socket");
+            bzero(rcvBuf, BUFSIZ + 1);
         }
     }
-    //close(newsockfd);
-    //free(rcvBuf);
+    close(newsockfd);
+    printf("closed client socket\n");
 
 }
 void sendError(int newsockfd){
     char *msg = "<html><body><h1>400 Bad Request</h1></body></html>";
     sendResponseHeader(newsockfd, "400 Bad Request", strlen(msg), "text/html");
     writeToClient(newsockfd, msg);
+    close(newsockfd);
+    printf("closed client socket\n");
 }
 
 void sendResponseHeader(int newsockfd, char *httpMsg, long contentLen, char *contentType){
