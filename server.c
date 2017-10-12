@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <stdint.h>
+#include <fcntl.h>
 void error(char *msg)
 {
     perror(msg);
@@ -91,10 +92,10 @@ void *pthread_read_and_write(void *arg){
     return NULL;
 }
 void requestHandler(int newsockfd, char *reqMsg){
-    char file[30];
+    char file[100];
     char *method = strtok(reqMsg, " /");
     strcpy(file, strtok(NULL, " /"));
-    char tmpFileName[30];
+    char tmpFileName[100];
     strcpy(tmpFileName, file);
     strtok(tmpFileName, ".");
     char *extension = strtok(NULL, ".");
@@ -112,7 +113,8 @@ void requestHandler(int newsockfd, char *reqMsg){
     }
     printf("compare success\n");
     long fsize;
-    char type[15];
+    char type[20];
+    
     if(extension == NULL){
         strcpy(type, "text/html");
     }else if(strcmp(extension, "jpeg") == 0){
@@ -121,9 +123,14 @@ void requestHandler(int newsockfd, char *reqMsg){
         strcpy(type,"image/gif");
     }else if(strcmp(extension, "mp3") == 0){
         strcpy(type, "audio/mpeg");
+    }else if(strcmp(extension, "pdf") == 0){
+        strcpy(type, "application/pdf");
+    }else{
+        strcpy(type, "text/plain");
     }
     printf("compare success\n");
     printf("type : %s\n", type);
+    /*
     FILE *fp = fopen(file, "rb");
     if(fp == NULL){
         sendError(newsockfd);
@@ -135,14 +142,40 @@ void requestHandler(int newsockfd, char *reqMsg){
     char *msg = (char*)malloc(fsize);
     fread(msg, fsize, 1, fp);
     fclose(fp);
+    */
+    char rcvBuf[BUFSIZ+1];
+    int fd;
+    printf("reading file...\n");
+    if((fd = open(file, O_RDONLY)) <0 ){
+        printf("sending error...\n");
+        sendError(newsockfd);
+        printf("send error OK\n");
+        return;
+    }
+    printf("open fd OK\n");
 
-    printf("fsize : %ld\n", fsize);
-    printf("strlen(msg) : %ld\n", strlen(msg));
+    //printf("fsize : %ld\n", fsize);
+    //printf("strlen(msg) : %ld\n", strlen(msg));
 
     char *httpMsgOK = "200 OK";
-    sendResponseHeader(newsockfd, httpMsgOK, fsize, type);
+    printf("sending header...\n");
+    sendResponseHeader(newsockfd, httpMsgOK, 100, type);
+    printf("send header OK\n");
+
+    /*
     int n = send(newsockfd,msg, fsize, 0); 
     if (n < 0) error("ERROR writing to socket");
+    */
+    int n;
+    if(fd >= 0) {
+        while((n=read(fd, rcvBuf, BUFSIZ)) > 0){
+            printf("read %d , sending\n", n);
+            int res = write(newsockfd, rcvBuf, n);
+            if(res <0) error("ERROR writing to socket");
+        }
+    }
+    close(newsockfd);
+
 }
 void sendError(int newsockfd){
     char *msg = "<html><body><h1>400 Bad Request</h1></body></html>";
@@ -153,17 +186,21 @@ void sendError(int newsockfd){
 void sendResponseHeader(int newsockfd, char *httpMsg, long contentLen, char *contentType){
     char resMsg[40];
     char conLen[40];
-    char conType[30];
+    char conType[50];
     sprintf(resMsg, "HTTP/1.1 %s\r\n",httpMsg);
-    sprintf(conLen, "Content-length: %ld\r\n", contentLen);
+    printf("sprintf resMsg : %s\n", resMsg);
+    //sprintf(conLen, "Content-length: %ld\r\n", contentLen);
     sprintf(conType, "Content-Type: %s\r\n\r\n", contentType);
+    printf("sprintf conType : %s\n", conType);
     writeToClient(newsockfd, resMsg);
-    writeToClient(newsockfd, conLen);
+    printf("send resMsg OK\n");
+    //writeToClient(newsockfd, conLen);
     writeToClient(newsockfd, conType);
+    printf("send conType OK\n");
 }
 
 int writeToClient(int newsockfd, char* msg){
-    int n =  send(newsockfd, msg, strlen(msg), 0);
+    int n =  write(newsockfd, msg, strlen(msg));
     if (n < 0) error("ERROR writing to socket");
     return n;
 }
