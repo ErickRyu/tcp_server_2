@@ -55,7 +55,7 @@ int main(int argc, char *argv[])
      if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) //Bind the socket to the server address
               error("ERROR on binding");
      
-     listen(sockfd,5); // Listen for socket connections. Backlog queue (connections to wait) is 5
+     listen(sockfd,10); // Listen for socket connections. Backlog queue (connections to wait) is 5
      
      clilen = sizeof(cli_addr);
      /*accept function: 
@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
          pthread_detach(pthread);
      }
      close(sockfd);
-     close(newsockfd);
+     //close(newsockfd);
      
      return 0; 
 }
@@ -130,7 +130,6 @@ void requestHandler(int newsockfd, char *reqMsg){
     }
     printf("compare success\n");
     printf("type : %s\n", type);
-    /*
     FILE *fp = fopen(file, "rb");
     if(fp == NULL){
         sendError(newsockfd);
@@ -138,11 +137,13 @@ void requestHandler(int newsockfd, char *reqMsg){
     }
     fseek(fp, 0, SEEK_END);
     fsize = ftell(fp);
+    /*
     rewind(fp);
     char *msg = (char*)malloc(fsize);
     fread(msg, fsize, 1, fp);
-    fclose(fp);
     */
+    fclose(fp);
+
     char rcvBuf[BUFSIZ+1];
     int fd;
     printf("reading file...\n");
@@ -159,7 +160,7 @@ void requestHandler(int newsockfd, char *reqMsg){
 
     char *httpMsgOK = "200 OK";
     printf("sending header...\n");
-    sendResponseHeader(newsockfd, httpMsgOK, 100, type);
+    sendResponseHeader(newsockfd, httpMsgOK, fsize, type);
     printf("send header OK\n");
 
     /*
@@ -169,12 +170,13 @@ void requestHandler(int newsockfd, char *reqMsg){
     int n;
     if(fd >= 0) {
         while((n=read(fd, rcvBuf, BUFSIZ)) > 0){
-            printf("read %d , sending\n", n);
-            int res = write(newsockfd, rcvBuf, n);
+            printf("sending rcvBuf : %d, remain : %ld\n", n, fsize-=n);
+            int res = send(newsockfd, rcvBuf, n, 0);
             if(res <0) error("ERROR writing to socket");
         }
     }
-    close(newsockfd);
+    //close(newsockfd);
+    //free(rcvBuf);
 
 }
 void sendError(int newsockfd){
@@ -185,16 +187,16 @@ void sendError(int newsockfd){
 
 void sendResponseHeader(int newsockfd, char *httpMsg, long contentLen, char *contentType){
     char resMsg[40];
-    char conLen[40];
+    char conLen[100];
     char conType[50];
     sprintf(resMsg, "HTTP/1.1 %s\r\n",httpMsg);
-    printf("sprintf resMsg : %s\n", resMsg);
-    //sprintf(conLen, "Content-length: %ld\r\n", contentLen);
+    sprintf(conLen, "Content-length: %ld\r\n", contentLen);
     sprintf(conType, "Content-Type: %s\r\n\r\n", contentType);
-    printf("sprintf conType : %s\n", conType);
+
+    printf("response message\n%s\n%s\n%s\n", resMsg, conLen, conType);
     writeToClient(newsockfd, resMsg);
     printf("send resMsg OK\n");
-    //writeToClient(newsockfd, conLen);
+    writeToClient(newsockfd, conLen);
     writeToClient(newsockfd, conType);
     printf("send conType OK\n");
 }
