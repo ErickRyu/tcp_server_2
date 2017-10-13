@@ -25,7 +25,8 @@ void sendResponseHeader(int newsockfd, char *httpMsg, long contentLen, char *con
 void requestHandler(int newsockfd, char *reqMsg);
 int main(int argc, char *argv[])
 {
-    signal(SIGPIPE, SIG_IGN);
+    //signal(SIGPIPE, SIG_IGN);
+    sigignore(SIGPIPE);
     int sockfd, newsockfd; 
     int portno;
     socklen_t clilen;
@@ -69,11 +70,12 @@ int main(int argc, char *argv[])
 void *pthread_read_and_write(void *arg){
     int newsockfd = (int)arg;
     char reqMsg[500];
-    int n;
+    ssize_t n;
 
     bzero(reqMsg,500);
     n = read(newsockfd,reqMsg,499); 
     if (n < 0) error("ERROR reading from socket");
+    
     printf("========Request Message======\n%s\n",reqMsg);
     requestHandler(newsockfd, reqMsg);
     printf("=============================\n");
@@ -155,7 +157,7 @@ void requestHandler(int newsockfd, char *reqMsg){
         while((n=read(fd, rcvBuf, BUFSIZ)) > 0){
 
             printf("sending rcvBuf : %d, remain : %ld\n", n, fsize-=n);
-            int res = send(newsockfd, rcvBuf, n + 1, 0);
+            ssize_t res = send(newsockfd, rcvBuf, n, 0);
             if(res <0) {
                 char errMsg[100];
                 sprintf(errMsg, "ERROR writing to socket __sock : %d __", newsockfd);
@@ -193,8 +195,8 @@ void sendResponseHeader(int newsockfd, char *httpMsg, long contentLen, char *con
 }
 
 int writeToClient(int newsockfd, char* msg){
-    int n =  write(newsockfd, msg, strlen(msg));
+    ssize_t n =  write(newsockfd, msg, strlen(msg));
     if (n < 0) error("ERROR writing to socket");
-    return n;
+    return 0;
 }
 
