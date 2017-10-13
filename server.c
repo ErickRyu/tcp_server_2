@@ -63,8 +63,29 @@ int main(int argc, char *argv[])
         newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
         if (newsockfd < 0) 
             error("ERROR on accept");
+        char reqMsg[500];
+        ssize_t n;
+
+        bzero(reqMsg,500);
+        n = read(newsockfd,reqMsg,499); 
+        if(n == 0) {close(newsockfd);continue;};
+        if (n < 0) error("ERROR reading from socket");
+        printf("========Request Message======\n%s\n",reqMsg);
+        if(reqMsg[0] == 0){
+            printf("req msg is null\n");
+            close(newsockfd);
+            continue;
+        }
+        requestHandler(newsockfd, reqMsg);
+        bzero(reqMsg, 500);
+        printf("=============================\n");
+
+
+
+        /*
         pthread_create(&pthread, NULL, *pthread_read_and_write, (void *)(intptr_t)newsockfd);
         pthread_detach(pthread);
+        */
     }
     close(sockfd);
 
@@ -142,6 +163,9 @@ void requestHandler(int newsockfd, char *reqMsg){
     }
     fseek(fp, 0, SEEK_END);
     fsize = ftell(fp);
+    char *msg = (char*)malloc(fsize);
+    rewind(fp);
+    fread(msg, fsize, 1, fp);
     fclose(fp);
 
     char rcvBuf[BUFSIZ+1];
@@ -164,18 +188,28 @@ void requestHandler(int newsockfd, char *reqMsg){
     pthread_mutex_unlock(&mutex);
     int n;
     bzero(rcvBuf, BUFSIZ + 1);
+    /*
     if(fd >= 0) {
         while((n=read(fd, rcvBuf, BUFSIZ)) > 0){
 
             printf("sending rcvBuf : %d, remain : %ld\n", n, fsize-=n);
             ssize_t res = send(newsockfd, rcvBuf, n, 0);
-            if(res <0) {
+            if(n == EOF | n == 0) { printf("finish file\n"); break; }
+            if(res == 0) { printf("sending is 0\n");}
+            if(res < 0) {
                 char errMsg[100];
                 sprintf(errMsg, "ERROR writing to socket __sock : %d __", newsockfd);
                 error(errMsg);
             }
             bzero(rcvBuf, BUFSIZ + 1);
         }
+    }
+    */
+    ssize_t res = write(newsockfd, msg, fsize);
+    if(res == 0){
+        printf("end file\n");
+    }else if(res < 0){
+        error("ERROR writing to socket");
     }
     close(newsockfd);
     printf("closed client socket\n");
@@ -201,6 +235,7 @@ void sendResponseHeader(int newsockfd, char *httpMsg, long contentLen, char *con
     strcat(responseHeader, conLen);
     strcat(responseHeader, conType);
 
+    printf("response message\n%s\n\n", responseHeader);
     /*
     printf("response message\n%s\n%s\n%s\n", resMsg, conLen, conType);
     writeToClient(newsockfd, resMsg);
@@ -218,6 +253,10 @@ int writeToClient(int newsockfd, char* msg){
     long toSend = strlen(msg);
     while(toSend > 0){
         n = write(newsockfd, msg, toSend);
+        if(n == 0){
+            printf("write is zero\n");
+            return -1;
+        }
         printf("write :  %ld\n", n);
         toSend -= n;
     }
