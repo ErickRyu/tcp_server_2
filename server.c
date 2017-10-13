@@ -17,6 +17,8 @@ void error(char *msg)
     perror(msg);
     exit(1);
 }
+void cleanExit(){exit(0);}
+
 
 void *pthread_read_and_write(void *arg);
 int writeToClient(int newsockfd, char* msg);
@@ -27,6 +29,8 @@ int main(int argc, char *argv[])
 {
     //signal(SIGPIPE, SIG_IGN);
     sigignore(SIGPIPE);
+    signal(SIGTERM, cleanExit);
+    signal(SIGINT, cleanExit);
     int sockfd, newsockfd; 
     int portno;
     socklen_t clilen;
@@ -51,7 +55,7 @@ int main(int argc, char *argv[])
     if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) 
         error("ERROR on binding");
 
-    listen(sockfd,10); 
+    listen(sockfd,20); 
 
     clilen = sizeof(cli_addr);
 
@@ -74,15 +78,22 @@ void *pthread_read_and_write(void *arg){
 
     bzero(reqMsg,500);
     n = read(newsockfd,reqMsg,499); 
+    if(n == 0) return NULL;
     if (n < 0) error("ERROR reading from socket");
-    
-    printf("========Request Message======\n%s\n",reqMsg);
-    requestHandler(newsockfd, reqMsg);
-    printf("=============================\n");
+        printf("========Request Message======\n%s\n",reqMsg);
+        if(reqMsg[0] == 0){
+            printf("req msg is null\n");
+            close(newsockfd);
+            return NULL;
+        }
+        requestHandler(newsockfd, reqMsg);
+        bzero(reqMsg, 500);
+        printf("=============================\n");
 
     return NULL;
 }
 void requestHandler(int newsockfd, char *reqMsg){
+
 
     printf("client socket : %d\n", newsockfd);
 
@@ -182,20 +193,34 @@ void sendResponseHeader(int newsockfd, char *httpMsg, long contentLen, char *con
     char resMsg[40];
     char conLen[100];
     char conType[50];
+    char responseHeader[200];
     sprintf(resMsg, "HTTP/1.1 %s\r\n",httpMsg);
     sprintf(conLen, "Content-length: %ld\r\n", contentLen);
     sprintf(conType, "Content-Type: %s\r\n\r\n", contentType);
+    strcpy(responseHeader, resMsg);
+    strcat(responseHeader, conLen);
+    strcat(responseHeader, conType);
 
+    /*
     printf("response message\n%s\n%s\n%s\n", resMsg, conLen, conType);
     writeToClient(newsockfd, resMsg);
     printf("send resMsg OK\n");
     writeToClient(newsockfd, conLen);
     writeToClient(newsockfd, conType);
+    */
+    writeToClient(newsockfd, responseHeader);
     printf("send conType OK\n");
 }
 
 int writeToClient(int newsockfd, char* msg){
-    ssize_t n =  write(newsockfd, msg, strlen(msg));
+    ssize_t n;
+    printf("sending %ld length msg\n", strlen(msg));
+    long toSend = strlen(msg);
+    while(toSend > 0){
+        n = write(newsockfd, msg, toSend);
+        printf("write :  %ld\n", n);
+        toSend -= n;
+    }
     if (n < 0) error("ERROR writing to socket");
     return 0;
 }
