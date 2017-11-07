@@ -28,15 +28,16 @@ int main(int argc, char *argv[])
 	struct hostent *server; //contains tons of information, including the server's IP address
 
 	char buffer[BUFSIZ];
-
-	char *requestMsg = "GET / HTTP1\r\nUser-Agent: Mozilla/4.0 (compatible; MSIE5.01; Windows NT)\r\nHost: www.naver.com\r\nAccept-Language: en-us\r\nAccept-Encoding: gzip,  deflate\r\nConnection: Keep-Alive)";
+	char *hostName = "www.naver.com";
+	char requestMsg[1024];
+	sprintf(requestMsg,  "GET / HTTP1\r\nUser-Agent: Mozilla/4.0 (compatible; MSIE5.01; Windows NT)\r\nHost: %s\r\nAccept-Language: en-us\r\nAccept-Encoding: gzip,  deflate\r\nConnection: Keep-Alive)",  hostName);
 	portno = PORT_NO;
 	sockfd = socket(AF_INET, SOCK_STREAM, 0); //create a new socket
 	if (sockfd < 0) 
 		error("ERROR opening socket");
 	printf("open socket\n");
 
-	server = gethostbyname("www.naver.com"); //takes a string like "www.yahoo.com", and returns a struct hostent which contains information, as IP address, address type, the length of the addresses...
+	server = gethostbyname(hostName); //takes a string like "www.yahoo.com", and returns a struct hostent which contains information, as IP address, address type, the length of the addresses...
 	if (server == NULL) {
 		fprintf(stderr,"ERROR, no such host\n");
 		exit(0);
@@ -61,7 +62,8 @@ int main(int argc, char *argv[])
 
 
 	while((n = read(sockfd,buffer,BUFSIZ)) > 0) {//read from the socket
-		printf("%s\n",buffer);
+		printf("n is %d\n",  n);
+		printf("%.*s\n",n,  buffer);
 		bzero(buffer,BUFSIZ);
 	}
 	if (n < 0) 
