@@ -14,7 +14,7 @@ Usage: ./client server_hostname server_port (./client 192.168.0.151 10000)
 
 #define PORT_NO 80
 
-void client();
+void client(char* reqMsg);
 char* getContentType(char *filename);
 int writeToClient(int newsockfd, char* msg);
 void sendError(int newsockfd);
@@ -66,7 +66,8 @@ int main(int argc, char *argv[])
         bzero(reqMsg,500);
         n = read(newsockfd,reqMsg,BUFSIZ); 
         if (n < 0) error("ERROR reading from socket");
-        printf("========Request Message======\n%s\n",reqMsg);
+        //printf("========Request Message======\n%s\n",reqMsg);
+				client(reqMsg);
 				/*
         requestHandler(newsockfd, reqMsg);
         bzero(reqMsg, 500);
@@ -193,7 +194,7 @@ int writeToClient(int newsockfd, char* msg){
     return 0;
 }
 
-void client(){
+void client(char *reqMsg){
 	int sockfd; //Socket descriptor
 	int portno, n;
 	struct sockaddr_in serv_addr;
@@ -202,7 +203,8 @@ void client(){
 	char buffer[BUFSIZ];
 	char *hostName = "www.egloos.com";
 	char requestMsg[1024];
-	sprintf(requestMsg,  "GET /ww.egloos.com HTTP1\r\nUser-Agent: Mozilla/4.0 (compatible; MSIE5.01; Windows NT)\r\nHost: %s\r\nAccept-Language: en-us\r\nAccept-Encoding: gzip,  deflate\r\nConnection: Keep-Alive)", hostName);
+	//sprintf(requestMsg,  "GET /ww.egloos.com HTTP1\r\nUser-Agent: Mozilla/4.0 (compatible; MSIE5.01; Windows NT)\r\nHost: %s\r\nAccept-Language: en-us\r\nAccept-Encoding: gzip,  deflate\r\nConnection: Keep-Alive)", hostName);
+	printf("%s\n",  reqMsg);
 	portno = PORT_NO;
 	sockfd = socket(AF_INET, SOCK_STREAM, 0); //create a new socket
 	if (sockfd < 0) 
