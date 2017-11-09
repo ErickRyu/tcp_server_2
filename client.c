@@ -201,10 +201,13 @@ void client(char *reqMsg){
 	struct hostent *server; //contains tons of information, including the server's IP address
 
 	char buffer[BUFSIZ];
-	char *hostName = "www.egloos.com";
+	char *hostName = "www.zdnet.co.kr";
 	char requestMsg[1024];
 	//sprintf(requestMsg,  "GET /ww.egloos.com HTTP1\r\nUser-Agent: Mozilla/4.0 (compatible; MSIE5.01; Windows NT)\r\nHost: %s\r\nAccept-Language: en-us\r\nAccept-Encoding: gzip,  deflate\r\nConnection: Keep-Alive)", hostName);
-	printf("%s\n",  reqMsg);
+	sprintf(requestMsg,  "GET / HTTP/1.1\r\nHost: www.zdnet.co.kr\r\nConnection: keep-alive\r\nCache-Control: max-age=0\r\nUser-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML,  like Gecko) Chrome/62.0.3202.89 Safari/537.36\r\nUpgrade-Insecure-Requests: 1\r\nAccept: text/html, application/xhtml+xml, application/xml;q=0.9, image/webp, image/apng, */*;q=0.8\r\nAccept-Encoding: gzip,  deflate,  br\r\nAccept-Language: en-US, en;q=0.9\r\n\r\n");
+	//printf("%s\n",  reqMsg);
+	//char *part1 = strstr(reqMsg,  "Host:");
+	//printf("%s\n",  part1);
 	portno = PORT_NO;
 	sockfd = socket(AF_INET, SOCK_STREAM, 0); //create a new socket
 	if (sockfd < 0) 
